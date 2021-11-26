@@ -49,6 +49,7 @@ type manifestData struct {
 	Features    []string
 	IconSnip    string
 	AppName     string
+	HasService  bool
 }
 
 const (
@@ -68,6 +69,7 @@ const (
 		<item name="android:statusBarColor">#40000000</item>
 	</style>
 </resources>`
+	foregroundPermission = "android.permission.FOREGROUND_SERVICE"
 )
 
 func init() {
@@ -446,6 +448,7 @@ func exeAndroid(tmpDir string, tools *androidTools, bi *buildInfo, extraJars, pe
 		Features:    features,
 		IconSnip:    iconSnip,
 		AppName:     appName,
+		HasService:  stringsContains(permissions, foregroundPermission),
 	}
 	tmpl, err := template.New("test").Parse(
 		`<?xml version="1.0" encoding="utf-8"?>
@@ -467,6 +470,19 @@ func exeAndroid(tmpDir string, tools *androidTools, bi *buildInfo, extraJars, pe
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
 		</activity>
+		{{if .HasService}}
+		<service android:name="org.gioui.GioForegroundService"
+			android:stopWithTask="true">
+			<meta-data android:name="org.gioui.ForegroundChannelID"
+			android:value="ForegroundChannelID" />
+			<meta-data android:name="org.gioui.ForegroundChannelName"
+			android:value="ForegroundChannelName" />
+			<meta-data android:name="org.gioui.ForegroundChannelDesc"
+			android:value="ForegroundChannelDesc" />
+			<meta-data android:name="org.gioui.ForegroundNotificationID"
+			android:value="0x42424242" />
+		</service>
+		{{end}}
 	</application>
 </manifest>`)
 	var manifestBuffer bytes.Buffer
@@ -865,6 +881,15 @@ func getPermissions(ps []string) ([]string, []string) {
 		}
 	}
 	return permissions, features
+}
+
+func stringsContains(strings []string, str string) bool {
+	for _, s := range strings {
+		if str == s {
+			return true
+		}
+	}
+	return false
 }
 
 func latestPlatform(sdk string) (string, error) {
