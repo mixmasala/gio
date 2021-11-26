@@ -40,6 +40,10 @@ static jclass jni_GetObjectClass(JNIEnv *env, jobject obj) {
 	return (*env)->GetObjectClass(env, obj);
 }
 
+static jobject jni_NewObject(JNIEnv *env, jclass clazz, jmethodID methodID) {
+	return (*env)->NewObject(env, clazz, methodID);
+}
+
 static jmethodID jni_GetMethodID(JNIEnv *env, jclass clazz, const char *name, const char *sig) {
 	return (*env)->GetMethodID(env, clazz, name, sig);
 }
@@ -1434,3 +1438,58 @@ func Java_org_gioui_Gio_scheduleMainFuncs(env *C.JNIEnv, cls C.jclass) {
 }
 
 func (_ ViewEvent) ImplementsEvent() {}
+
+var foregroundService struct {
+	intent C.jobject
+	mu     sync.Mutex
+	count  int
+}
+
+// StartForeground starts the foreground service
+func StartForeground(title, text string) (err error) {
+	foregroundService.mu.Lock()
+	defer foregroundService.mu.Unlock()
+	if foregroundService.count == 0 {
+		runInJVM(javaVM(), func(env *C.JNIEnv) {
+			startForegroundService := getStaticMethodID(env, android.gioCls,
+				"startForegroundService",
+				"(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;",
+			)
+			foregroundService.intent, err = callStaticObjectMethod(env, android.gioCls,
+				startForegroundService,
+				jvalue(android.appCtx),
+				jvalue(javaString(env, title)),
+				jvalue(javaString(env, text)),
+			)
+			if err == nil {
+				// get a reference across JNI sessions to the returned intent
+				foregroundService.intent = C.jni_NewGlobalRef(env, foregroundService.intent)
+			}
+		})
+	}
+	if err != nil {
+		return
+	}
+	foregroundService.count++
+	return
+}
+
+// StopForeground stops the foreground service
+func StopForeground() (err error) {
+	foregroundService.mu.Lock()
+	defer foregroundService.mu.Unlock()
+
+	if foregroundService.count == 0 {
+		return errors.New("No foreground service running")
+	}
+	if foregroundService.count == 1 {
+		runInJVM(javaVM(), func(env *C.JNIEnv) {
+			defer C.jni_DeleteGlobalRef(env, foregroundService.intent)
+			cls := getObjectClass(env, android.appCtx)
+			stopServiceMethod := getMethodID(env, cls, "stopService", "(Landroid/content/Intent;)Z")
+			err = callVoidMethod(env, android.appCtx, stopServiceMethod, jvalue(foregroundService.intent))
+		})
+	}
+	foregroundService.count--
+	return
+}
