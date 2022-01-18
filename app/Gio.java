@@ -2,10 +2,13 @@
 
 package org.gioui;
 
+import android.app.Activity;
 import android.content.ClipboardManager;
 import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -67,16 +70,25 @@ public final class Gio {
 
 	static private native void scheduleMainFuncs();
 
-	static Intent startForegroundService(Context ctx, String serviceClassName, String activityClassName, String title, String text) {
+	static Intent startForegroundService(Context ctx, String title, String text) {
 		Intent intent = new Intent();
 		try {
-			intent.setClass(ctx, ctx.getClassLoader().loadClass(serviceClassName));
+			Activity activity = (Activity) ctx;
+			Bundle metadata = ctx.getPackageManager().getActivityInfo(activity.getComponentName(), PackageManager.GET_META_DATA).metaData;
+			if (metadata != null) {
+				String serviceClassName = metadata.getString("org.gioui.ForegroundServiceClass");
+				intent.setClass(ctx, ctx.getClassLoader().loadClass(serviceClassName));
+			} else {
+				throw new RuntimeException("No ForegroundService MetaData found");
+			}
 		} catch (ClassNotFoundException e) {
 			throw new RuntimeException(e);
+		} catch (PackageManager.NameNotFoundException e) {
+			throw new RuntimeException(e);
 		}
+
 		intent.putExtra("title", title);
 		intent.putExtra("text", text);
-		intent.putExtra("activityClass", activityClassName);
 		ctx.startService(intent);
 		return intent;
 	}

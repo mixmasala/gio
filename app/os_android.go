@@ -969,22 +969,17 @@ var foregroundService struct {
 
 // StartForeground starts the foreground service
 func StartForeground(title, text string) (err error) {
-	const serviceClass = "org/gioui/GioForegroundService"
-	const activityClass = "org/gioui/GioActivity"
-
 	foregroundService.mu.Lock()
 	defer foregroundService.mu.Unlock()
 	foregroundService.once.Do(func() {
 		runInJVM(javaVM(), func(env *C.JNIEnv) {
 			startForegroundService := getStaticMethodID(env, android.gioCls,
 				"startForegroundService",
-				"(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;",
+				"(Landroid/content/Context;Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;",
 			)
 			foregroundService.intent, err = callStaticObjectMethod(env, android.gioCls,
 				startForegroundService,
 				jvalue(android.appCtx),
-				jvalue(javaString(env, serviceClass)),
-				jvalue(javaString(env, activityClass)),
 				jvalue(javaString(env, title)),
 				jvalue(javaString(env, text)),
 			)

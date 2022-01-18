@@ -37,9 +37,10 @@ public class GioForegroundService extends Service {
 				channelName = metadata.getString("org.gioui.ForegroundChannelName");
 				String channelDesc = metadata.getString("org.gioui.ForegroundChannelDesc");
 				String channelID = metadata.getString("org.gioui.ForegroundChannelID");
+				String resultActivity = metadata.getString("org.gioui.ForegroundResultActvity");
 				int notificationID = metadata.getInt("org.gioui.ForegroundNotificationID", 0x42424242);
 				this.createNotificationChannel(channelDesc, channelID, channelName);
-				Intent resultIntent = new Intent(ctx, ctx.getClassLoader().loadClass(extras.getString("activityClass")));
+				Intent resultIntent = new Intent(ctx, ctx.getClassLoader().loadClass(resultActivity));
 				PendingIntent pending = PendingIntent.getActivity(ctx, notificationID, resultIntent, Intent.FLAG_ACTIVITY_CLEAR_TASK);
 				Notification.Builder builder = new Notification.Builder(ctx, channelID)
 					.setContentTitle(title)

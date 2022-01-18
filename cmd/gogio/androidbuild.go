@@ -469,6 +469,9 @@ func exeAndroid(tmpDir string, tools *androidTools, bi *buildInfo, extraJars, pe
 				<action android:name="android.intent.action.MAIN" />
 				<category android:name="android.intent.category.LAUNCHER" />
 			</intent-filter>
+			<meta-data android:name="org.gioui.ForegroundServiceClass"
+			android:value="org/gioui/GioForegroundService" />
+
 		</activity>
 		{{if .HasService}}
 		<service android:name="org.gioui.GioForegroundService"
@@ -481,6 +484,8 @@ func exeAndroid(tmpDir string, tools *androidTools, bi *buildInfo, extraJars, pe
 			android:value="ForegroundChannelDesc" />
 			<meta-data android:name="org.gioui.ForegroundNotificationID"
 			android:value="0x42424242" />
+			<meta-data android:name="org.gioui.ForegroundResultActivity"
+			android:value="org/gioui/GioActivity" />
 		</service>
 		{{end}}
 	</application>
