@@ -4,10 +4,6 @@
 
 package foreground
 
-func start(title, text string) error {
-	return nil
-}
-
-func stop() error {
+func start(title, text string) (func(), error) {
 	return nil
 }
