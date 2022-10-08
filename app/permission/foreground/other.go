@@ -5,5 +5,5 @@
 package foreground
 
 func start(title, text string) (func(), error) {
-	return nil, nil
+	return func(){}, nil
 }
