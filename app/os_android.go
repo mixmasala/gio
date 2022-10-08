@@ -1455,8 +1455,8 @@ var foregroundService struct {
 	count  int
 }
 
-// StartForeground starts the foreground service
-func StartForeground(title, text string) (err error) {
+// Start starts the foreground service
+func Start(title, text string) (stop func(), err error) {
 	foregroundService.mu.Lock()
 	defer foregroundService.mu.Unlock()
 	if foregroundService.count == 0 {
@@ -1478,28 +1478,21 @@ func StartForeground(title, text string) (err error) {
 		})
 	}
 	if err != nil {
-		return
+		return nil, err
 	}
 	foregroundService.count++
-	return
-}
+	return func() {
+		foregroundService.mu.Lock()
+		defer foregroundService.mu.Unlock()
+		if foregroundService.count == 1 {
+			runInJVM(javaVM(), func(env *C.JNIEnv) {
+				defer C.jni_DeleteGlobalRef(env, foregroundService.intent)
+				cls := getObjectClass(env, android.appCtx)
+				stopServiceMethod := getMethodID(env, cls, "stopService", "(Landroid/content/Intent;)Z")
+				callVoidMethod(env, android.appCtx, stopServiceMethod, jvalue(foregroundService.intent))
+			})
+		}
+		foregroundService.count--
+	}, err
 
-// StopForeground stops the foreground service
-func StopForeground() (err error) {
-	foregroundService.mu.Lock()
-	defer foregroundService.mu.Unlock()
-
-	if foregroundService.count == 0 {
-		return errors.New("No foreground service running")
-	}
-	if foregroundService.count == 1 {
-		runInJVM(javaVM(), func(env *C.JNIEnv) {
-			defer C.jni_DeleteGlobalRef(env, foregroundService.intent)
-			cls := getObjectClass(env, android.appCtx)
-			stopServiceMethod := getMethodID(env, cls, "stopService", "(Landroid/content/Intent;)Z")
-			err = callVoidMethod(env, android.appCtx, stopServiceMethod, jvalue(foregroundService.intent))
-		})
-	}
-	foregroundService.count--
-	return
 }

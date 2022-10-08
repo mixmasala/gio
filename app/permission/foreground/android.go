@@ -18,10 +18,6 @@ import (
 	"gioui.org/app"
 )
 
-func start(title, text string) error {
-	return app.StartForeground(title, text)
-}
-
-func stop() error {
-	return app.StopForeground()
+func start(title, text string) (func(), error) {
+	return app.Start(title, text)
 }

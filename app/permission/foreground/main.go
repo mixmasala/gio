@@ -12,19 +12,12 @@ The following entries will be added to AndroidManifest.xml:
 
 package foreground
 
-// Start notifies the system that the program will perform
-// background work and that it shouldn't be killed. It returns a channel
-// that should be closed when the background work is complete.
+// Start notifies the system that the program will perform background work and
+// that it shouldn't be killed. It returns a CancelFunc that should be called
+// when the background work is complete.
 
 // Start is a no-op on Linux, Windows, macOS; Android will
 // display a notification during background work; iOS isn't supported.
-func Start(title, text string) error {
+func Start(title, text string) (func(), error) {
 	return start(title, text)
-}
-
-// Stop is a no-op on Linux, Windows, macOS; Android will stop the foreground
-// service when the nubmer of calls to Stop equals the number of calls to
-// Start.
-func Stop() error {
-	return stop()
 }
