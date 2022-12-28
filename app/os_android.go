@@ -1458,14 +1458,14 @@ func (_ ViewEvent) ImplementsEvent() {}
 var foregroundService struct {
 	intent C.jobject
 	mu     sync.Mutex
-	count  int
+	stop   map[*int]bool
 }
 
 // Start starts the foreground service
 func Start(title, text string) (stop func(), err error) {
 	foregroundService.mu.Lock()
 	defer foregroundService.mu.Unlock()
-	if foregroundService.count == 0 {
+	if len(foregroundService.stop) == 0 {
 		runInJVM(javaVM(), func(env *C.JNIEnv) {
 			foregroundService.intent, err = callStaticObjectMethod(env, android.gioCls,
 				android.startForegroundService,
@@ -1476,23 +1476,31 @@ func Start(title, text string) (stop func(), err error) {
 			if err == nil {
 				// get a reference across JNI sessions to the returned intent
 				foregroundService.intent = C.jni_NewGlobalRef(env, foregroundService.intent)
+
+			} else {
+				panic(err)
 			}
 		})
 	}
 	if err != nil {
 		return nil, err
 	}
-	foregroundService.count++
+	ref := new(int)
+	foregroundService.stop[ref] = true
 	return func() {
 		foregroundService.mu.Lock()
 		defer foregroundService.mu.Unlock()
-		if foregroundService.count == 1 {
+		delete(foregroundService.stop, ref)
+		if len(foregroundService.stop) == 0 {
 			runInJVM(javaVM(), func(env *C.JNIEnv) {
 				defer C.jni_DeleteGlobalRef(env, foregroundService.intent)
 				callVoidMethod(env, android.appCtx, android.stopService, jvalue(foregroundService.intent))
 			})
 		}
-		foregroundService.count--
-	}, err
+	}, nil
 
+}
+
+func init() {
+	foregroundService.stop = make(map[*int]bool)
 }

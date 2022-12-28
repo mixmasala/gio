@@ -62,6 +62,9 @@ public class GioForegroundService extends Service {
 			startForeground(notificationID, builder.build());
 		} catch (PackageManager.NameNotFoundException e) {
 			throw new RuntimeException(e);
+		} catch (java.lang.SecurityException e) {
+			// XXX: notify the caller of Start that the service has failed
+			throw new RuntimeException(e);
 		}
 		return START_NOT_STICKY;
 	}

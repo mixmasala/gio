@@ -69,7 +69,8 @@ public final class Gio {
 
 	static Intent startForegroundService(Context ctx, String title, String text) throws ClassNotFoundException {
 		Intent intent = new Intent();
-		intent.setClass(ctx, ctx.getClassLoader().loadClass("org/gioui/GioForegroundService"));
+		//intent.setClass(ctx, ctx.getClassLoader().loadClass("org/gioui/GioForegroundService"));
+		intent.setClass(ctx, GioForegroundService.class);
 		intent.putExtra("title", title);
 		intent.putExtra("text", text);
 		ctx.startService(intent);
